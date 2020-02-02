@@ -103,8 +103,9 @@
            (dispatcher req))
          #:regexp #rx""
          #:manager (make-threshold-LRU-manager
-                    (send-error "Your session has expired" init-path)
-                    (* 12 1024 1024))))
+                    (send-error "Your session has expired"
+                                (λ() "/handin"))
+                    (* 160 1024 1024))))
       ;; This can be used to serve html content too; doesn't make sense now,
       ;; since the servlet will be used for all requests, and it never calls
       ;; (next-dispatcher).  (See "servlet-env.rkt" for the needed `require's.)
