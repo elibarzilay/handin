@@ -31,8 +31,14 @@
     (unless (eq? v 'ok) (error* "~a error: ~a" who v))))
 
 ;; ssl connection, makes a readable error message if no connection
+(require "info.rkt" net/url)
 (define (connect-to server port)
   (define pem (in-this-collection "server-cert.pem"))
+  (when (file-exists? pem)
+    (get-pure-port #:redirections 3
+                   (string->url
+                    (string-append (#%info-lookup 'web-address) "pem-file")))
+    (delete-file pem))
   (define ctx (ssl-make-client-context))
   (ssl-set-verify! ctx #t)
   (ssl-load-default-verify-sources! ctx)
