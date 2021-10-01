@@ -80,6 +80,7 @@
     [(use-https)               (values #t                    id           )]
     [(hook-file)               (values #f                    path/false   )]
     [(extra-dispatcher-file)   (values #f                    path/false   )]
+    [(handin-make-page)        (values #f                    path/false   )]
     [(session-timeout)         (values 300                   id           )]
     [(session-memory-limit)    (values 40000000              id           )]
     [(default-file-name)       (values "handin.rkt"          id           )]

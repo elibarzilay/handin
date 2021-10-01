@@ -9,10 +9,12 @@
          web-server/servlet
          web-server/compat/0/coerce
          web-server/compat/0/http/response-structs
+         xml
          "private/md5.rkt"
          "private/logger.rkt"
          "private/config.rkt"
          "private/hooker.rkt"
+         "private/reloadable.rkt"
          "run-servlet.rkt")
 
 (define (aget alist key)
@@ -21,9 +23,26 @@
 (define (clean-str s)
   (regexp-replace #rx" +$" (regexp-replace #rx"^ +" s "") ""))
 
+(define make-page-file #f)
+(define make-page-proc #f)
 (define (make-page title . body)
-  `(html (head (title ,title))
-         (body ([bgcolor "white"]) (h1 ((align "center")) ,title) ,@body)))
+  (define file (get-conf 'handin-make-page))
+  (define (default-maker title . body)
+    (xexpr->string
+     `(html (head (title ,title))
+            (body ([bgcolor "white"]) (h1 ((align "center")) ,title) ,@body))))
+  (define maker
+    (cond [(not file) default-maker]
+          [else (unless (equal? file make-page-file)
+                  (set! make-page-file file)
+                  (set! make-page-proc
+                        (auto-reload-procedure `(file ,(path->string file))
+                                               'make-page)))
+                make-page-proc]))
+  (response/output
+   (λ (out)
+     (write-string (apply maker title body) out)
+     (void))))
 
 (define get-user-data
   (let ([users-file (build-path server-dir "users.rktd")])
@@ -139,23 +158,23 @@
     (handle-status-request user next null)))
 
 (define (all-status-page user)
-  (define (cell  . texts) `(td ([bgcolor "white"]) ,@texts))
-  (define (rcell . texts) `(td ([bgcolor "white"] [align "right"]) ,@texts))
-  (define (header . texts) `(td ([bgcolor "#f0f0f0"]) (big (strong ,@texts))))
+  (define (cell  . texts) `(td () ,@texts))
+  (define (rcell . texts) `(td ([align "right"]) ,@texts))
+  (define (header . texts) `(th () (big (strong ,@texts))))
   (define ((row k active? upload-suffixes) dir)
-    (let ([hi (assignment<->dir dir)])
-      `(tr ([valign "top"])
-         ,(apply header hi (if active? `((br) (small (small "[active]"))) '()))
-         ,(apply cell (handin-link k user hi upload-suffixes))
-         ,(rcell (handin-grade user hi))
-         ,(apply cell (solution-link k hi)))))
+    (define hi (assignment<->dir dir))
+    `(tr ([valign "top"] ,@(if active? `([class "active"]) '()))
+       ,(apply header hi (if active? `((br) (small (small "[active]"))) '()))
+       ,(apply cell (handin-link k user hi upload-suffixes))
+       ,(rcell (handin-grade user hi))
+       ,(apply cell (solution-link k hi))))
   (define upload-suffixes (get-conf 'allow-web-upload))
   (let* ([next
           (send/suspend
            (lambda (k)
              (make-page
               (format "All Handins for ~a" user)
-              `(table ([bgcolor "#ddddff"] [cellpadding "6"] [align "center"])
+              `(table ([id "all-handins"] [cellpadding "6"])
                  (tr () ,@(map header '(nbsp "Files" "Grade" "Solution")))
                  ,@(append (map (row k #t upload-suffixes) (get-conf 'active-dirs))
                            (map (row k #f #f) (get-conf 'inactive-dirs)))))))])
