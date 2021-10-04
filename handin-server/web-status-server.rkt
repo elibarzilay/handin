@@ -375,6 +375,7 @@
     (begin0 (parameterize ([error-print-context-length 0])
               (run-servlet
                dispatcher
+               #:extra-dispatcher extra-dispatcher
                #:log-file (get-conf 'web-log-file)))
       (log-line "*** embedded web server started"))
     ;; simple "server" so it's known that there is no server
