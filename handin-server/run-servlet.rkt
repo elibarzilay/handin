@@ -66,6 +66,30 @@
     (define tcp-connect void)
     (define tcp-connect/enable-break void)))
 
+(define (make-servlet-manager instance-expiration-handler cust)
+  (define memory-threshold (* 1024 1024))
+  ;; copied from lru.rkt, modified to count only the memory of cust
+  (create-LRU-manager
+   ;; Called when an instance has expired.
+   instance-expiration-handler
+   ;; The condition below is checked every 5 seconds
+   5
+   ;; One 'life point' is deducted every 10 minutes
+   (* 10 60)
+   ;; If this condition is true a 'life point' is deducted
+   ;; from the continuation
+   (lambda ()
+     (define memory-use (current-memory-use cust))
+     (define collect?   (or (>= memory-use memory-threshold)
+                            (< memory-use 0)))
+     ;; (eprintf "------------> ~s~a\n" memory-use (if collect? "!!!" ""))
+     collect?)
+   ;; The number of 'life points' an continuation starts with
+   #:initial-count 24
+   ;; Logging done whenever an continuation is collected
+   #:inform-p (lambda args
+                (void))))
+
 (provide run-servlet)
 (define (run-servlet dispatcher
                      #:extra-dispatcher [extra-dispatcher #f]
@@ -89,28 +113,27 @@
                  (title ,msg))
            (body ,msg "; " (a ([href ,init-path]) "restarting") " in 3 seconds.")))
   (define shut
-    (serve
-     #:tcp@ (make-tcp@ ach)
-     #:dispatch
-     (wrap-sequence
-      (and log-file (log:make #:format (log:log-format->format 'apache-default)
-                              #:log-path log-file))
-      (and extra-dispatcher (extra-dispatcher next-dispatcher))
-      (dispatch/servlet
-       (lambda (req)
-         (set! init-path (url->string (request-uri req)))
-         (dispatcher req))
-       #:regexp #rx""
-       #:manager (make-threshold-LRU-manager
-                  (send-error "Your session has expired")
-                  (* 160 1024 1024)))
-      ;; This can be used to serve html content too; doesn't make sense now,
-      ;; since the servlet will be used for all requests, and it never calls
-      ;; (next-dispatcher).  (See "servlet-env.rkt" for the needed `require's.)
-      ;; (files:make
-      ;;  #:url->path (fsmap:make-url->path (build-path server-dir "htdocs")))
-      ;; (lift:make (send-error "File not found"))
-      )))
+    (parameterize ([current-custodian (make-custodian)])
+      (serve
+       #:tcp@ (make-tcp@ ach)
+       #:dispatch
+       (wrap-sequence
+        (and log-file (log:make #:format (log:log-format->format 'apache-default)
+                                #:log-path log-file))
+        (and extra-dispatcher (extra-dispatcher next-dispatcher))
+        (dispatch/servlet
+         (lambda (req)
+           (set! init-path (url->string (request-uri req)))
+           (dispatcher req))
+         #:regexp #rx""
+         #:manager (make-servlet-manager (send-error "Your session has expired") (current-custodian)))
+        ;; This can be used to serve html content too; doesn't make sense now,
+        ;; since the servlet will be used for all requests, and it never calls
+        ;; (next-dispatcher).  (See "servlet-env.rkt" for the needed `require's.)
+        ;; (files:make
+        ;;  #:url->path (fsmap:make-url->path (build-path server-dir "htdocs")))
+        ;; (lift:make (send-error "File not found"))
+        ))))
   (lambda (msg . args)
     (case msg
       [(shutdown) (shut)]
