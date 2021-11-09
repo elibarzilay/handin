@@ -733,8 +733,11 @@
     (send base get-bytes)))
 
 (define (string->editor! str defs)
-  (let* ([base (make-object editor-stream-in-bytes-base% str)]
-         [stream (make-object editor-stream-in% base)])
+  (with-handlers ([void (lambda (e)
+                          (error 'string->editor!
+                                 "errors processing string: ~s" str))])
+    (define base (make-object editor-stream-in-bytes-base% str))
+    (define stream (make-object editor-stream-in% base))
     (read-editor-version stream base #t)
     (read-editor-global-header stream)
     (send* defs (begin-edit-sequence #f)
