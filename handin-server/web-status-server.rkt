@@ -197,12 +197,14 @@
   (let* ([mode (aget (request-bindings next) 'mode)]
          [tag (aget (request-bindings next) 'tag)])
     (cond
-     [(string=? mode "download")
-      (download user tag)]
-     [(string=? mode "upload")
-      (upload user tag upload-suffixes)]
-     [else
-      (error 'status "unknown mode: ~s" mode)])))
+      [(not mode)
+       (error 'status "no download/upload mode specified (url edited?)")]
+      [(string=? mode "download")
+       (download user tag)]
+      [(string=? mode "upload")
+       (upload user tag upload-suffixes)]
+      [else
+       (error 'status "unknown mode: ~s" mode)])))
 
 (define (check path elts allow-active? allow-inactive?)
   (let loop ([path path] [elts (reverse elts)])
