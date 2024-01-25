@@ -252,9 +252,10 @@
               [wxme? #"application/data"]
               [else  #"text/plain"])
         (list
-         (make-header #"Content-Length"
-                      (string->bytes/latin-1
-                       (number->string (bytes-length data))))
+         ;; https://github.com/racket/web-server/issues/132
+         ;; (make-header #"Content-Length"
+         ;;              (string->bytes/latin-1
+         ;;               (number->string (bytes-length data))))
          (make-header #"Content-Disposition"
                       (string->bytes/utf-8
                        (format "~a; filename=~s"
