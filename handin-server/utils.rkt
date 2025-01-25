@@ -69,12 +69,12 @@
                          #:allow-syntactic-requires allowed-requires)))))
 
 (define (open-input-text-editor/lines str)
-  (let ([inp (open-input-text-editor str)])
+  (let ([inp (open-input-text-editor str 0 'end (λ(s) s) 'submission #t)])
     (port-count-lines! inp) inp))
 
 (define (make-evaluator/submission language requires str)
   (let-values ([(defs interacts) (unpack-submission str)])
-    (make-evaluator* language requires 'auto (open-input-text-editor defs))))
+    (make-evaluator* language requires 'auto (open-input-text-editor/lines defs))))
 
 (define (evaluate-all source port eval)
   (let loop ()
@@ -200,7 +200,7 @@
                                         #:readers [readers 'auto]
                                         go)
   (let-values ([(defs interacts) (unpack-submission str)])
-    (call-with-evaluator lang requires (open-input-text-editor defs)
+    (call-with-evaluator lang requires (open-input-text-editor/lines defs)
                          #:allowed-requires allowed-requires
                          #:readers readers
                          go)))

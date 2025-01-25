@@ -139,6 +139,9 @@ Keywords for configuring @racket[check:]:
   code).  Defaults to 79.  This feature can be disabled if set to
   @racket[#f].  @textoption}
 
+@item{@indexed-racket[:text-check]---a function that checks the text of the
+  submission (before evaluations etc).  No default.  @textoption}
+
 @item{@indexed-racket[:output]---the name of the original handin file
   (unrelated to the text-converted files).  Defaults to
   @filepath{hw.rkt}.  (The suffix changes the defaults of

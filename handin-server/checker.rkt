@@ -382,6 +382,7 @@
             [untabify?*     (get ':untabify?     #'#t)]
             [textualize?*   (get ':textualize?   #'#f)]
             [maxwidth*      (get ':maxwidth      #'79)]
+            [text-check*    (get ':text-check    #'#f)]
             [markup-prefix* (get ':markup-prefix #'#f)]
             [prefix-re*     (get ':prefix-re     #'#f)]
             [student-line*
@@ -430,6 +431,7 @@
                      [untabify?      untabify?*]
                      [textualize?    textualize?*]
                      [maxwidth       maxwidth*]
+                     [text-check     text-check*]
                      [markup-prefix  markup-prefix*]
                      [prefix-re      prefix-re*]
                      [student-line   student-line*]
@@ -514,6 +516,7 @@
                                     submission->bytes)
                                   submission maxwidth textualize? untabify?
                                   markup-prefix prefix-re))))
+                   (when text-check (text-check submission-text))
                    (define (uem-handler e)
                      (let ([m (if (exn? e) (exn-message e) (format "~a" e))])
                        (cond
